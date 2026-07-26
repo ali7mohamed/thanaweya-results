@@ -4,7 +4,9 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ResultCard from '@/components/ResultCard';
-import AdSlot from '@/components/AdSlot';
+import AdsterraUnit from '@/components/AdsterraUnit';
+import AdsterraBreak from '@/components/AdsterraBreak';
+import { AD_FORMAT_MAP } from '@/lib/adsterra';
 
 function ResultContent() {
   const params = useSearchParams();
@@ -89,9 +91,12 @@ function ResultContent() {
   // pages-per-session without clickbait, per the AdSense-first architecture.
   return (
     <div style={{ paddingTop: 20 }}>
-      <AdSlot format="leaderboard" adUnitId="result_top" />
+      <AdsterraUnit unit={AD_FORMAT_MAP.leaderboard} />
       <ResultCard result={result} />
-      <AdSlot format="in-feed" adUnitId="result_infeed_1" />
+      <AdsterraUnit unit={AD_FORMAT_MAP['in-feed']} />
+
+      {/* Exam-season ad wall #1, between the result and the "next step" card. */}
+      <AdsterraBreak count={9} />
 
       <div className="card" style={{ marginTop: 24 }}>
         <h3 style={{ marginTop: 0 }}>الخطوة التالية</h3>
@@ -117,7 +122,9 @@ function ResultContent() {
         </div>
       </div>
 
-      <AdSlot format="rectangle" adUnitId="result_bottom" />
+      <AdsterraUnit unit={AD_FORMAT_MAP.rectangle} />
+      {/* Exam-season ad wall #2, at the bottom of the page. */}
+      <AdsterraBreak count={10} />
     </div>
   );
 }

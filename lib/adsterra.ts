@@ -57,6 +57,45 @@ export const AD_FORMAT_MAP: Record<AdFormat, AdsterraUnit> = {
 };
 
 /**
+ * Every Adsterra unit we have a code for, in a fixed rotation. Used by
+ * getAdUnits() below to fill a page with as many ad blocks as it wants —
+ * there are only 7 real zones, so past 7 the same zones repeat.
+ */
+export const ALL_UNITS: AdsterraUnit[] = [
+  BANNER_728x90,
+  BANNER_300x250,
+  NATIVE_BANNER,
+  BANNER_468x60,
+  BANNER_160x300,
+  BANNER_160x600,
+  BANNER_320x50,
+];
+
+/**
+ * Returns `count` ad units, cycling through ALL_UNITS so a page (e.g. the
+ * search or result page during results season) can request a big stack of
+ * ads without hand-listing every one.
+ */
+export function getAdUnits(count: number): AdsterraUnit[] {
+  return Array.from({ length: Math.max(0, count) }, (_, i) => ALL_UNITS[i % ALL_UNITS.length]);
+}
+
+/** Builds the raw HTML Adsterra expects for one unit, for use inside an isolated iframe. */
+export function buildAdsterraHtml(unit: AdsterraUnit): string {
+  if (unit.kind === 'banner') {
+    const atOptions = { key: unit.key, format: 'iframe', height: unit.height, width: unit.width, params: {} };
+    return `<!doctype html><html><head><style>html,body{margin:0;padding:0;overflow:hidden}</style></head><body>
+<script>atOptions = ${JSON.stringify(atOptions)};</script>
+<script src="https://www.highperformanceformat.com/${unit.key}/invoke.js"></script>
+</body></html>`;
+  }
+  return `<!doctype html><html><head><style>html,body{margin:0;padding:0}</style></head><body>
+<div id="${unit.containerId}"></div>
+<script src="${unit.scriptSrc}" async></script>
+</body></html>`;
+}
+
+/**
  * Site-wide units — these fire globally per page view, not into a specific
  * content slot, so they're loaded once from app/layout.tsx rather than
  * through AdSlot/AdStack.
