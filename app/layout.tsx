@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { POPUNDER_SRC, SOCIAL_BAR_SRC } from '@/lib/adsterra';
 import './globals.css';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
-const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -51,14 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }),
           }}
         />
-        {ADSENSE_CLIENT && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
+        {/* Adsterra site-wide units: fire once per page view, not tied to a content slot. */}
+        <Script src={POPUNDER_SRC} strategy="afterInteractive" />
+        <Script src={SOCIAL_BAR_SRC} strategy="afterInteractive" />
       </head>
       <body>
         <div className="container">

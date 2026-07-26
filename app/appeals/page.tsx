@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
@@ -108,7 +108,7 @@ export default function AppealsPage() {
         </ul>
       </article>
 
-      <AdSlot format="responsive" adUnitId="appeals_mid" />
+      <AdStack baseId="appeals_mid" count={3} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default async function FaqPage() {
           </details>
         ))}
       </div>
-      <AdSlot format="in-feed" adUnitId="faq_bottom" />
+      <AdStack baseId="faq_bottom" count={3} formats={['in-feed', 'rectangle', 'multiplex']} />
     </div>
   );
 }

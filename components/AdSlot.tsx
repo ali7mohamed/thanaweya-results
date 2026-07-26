@@ -1,19 +1,25 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { AD_FORMAT_MAP, type AdFormat } from '@/lib/adsterra';
 
 type Props = {
-  format: 'leaderboard' | 'rectangle' | 'multiplex' | 'in-feed' | 'responsive' | 'anchor';
+  format: AdFormat;
+  /** Placement label, kept for identification in markup/analytics — Adsterra's ad code is fixed per format, not per unit. */
   adUnitId: string;
   className?: string;
 };
 
 /**
- * Single reusable ad component for every placement on the site.
+ * Single reusable ad component for every placement on the site (Adsterra).
  * - Reserves layout space up front (via CSS min-height per format) to keep CLS at zero.
- * - Lazy-loads: only pushes to adsbygoogle once the slot is in view.
- * - Ad locations can change per-page without touching this component or business logic,
- *   because placement/format/unit-id all come from the ad_slots table, not hardcoded here.
+ * - Lazy-loads: the ad only fires once the slot scrolls into view.
+ * - Every instance renders inside its own iframe. Adsterra's banner snippets rely on
+ *   a page-global `atOptions` variable, and the Native Banner snippet targets a
+ *   hardcoded container id — both break the moment the same snippet appears more
+ *   than once on a page, which happens constantly here via AdStack. An isolated
+ *   iframe gives each instance its own document, so the same zone can be reused
+ *   freely across a page without id or variable collisions.
  */
 export default function AdSlot({ format, adUnitId, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -23,17 +29,46 @@ export default function AdSlot({ format, adUnitId, className }: Props) {
     const el = ref.current;
     if (!el) return;
 
+    const unit = AD_FORMAT_MAP[format];
+
+    const render = () => {
+      if (loaded.current) return;
+      loaded.current = true;
+
+      const iframe = document.createElement('iframe');
+      iframe.title = 'advertisement';
+      iframe.scrolling = 'no';
+      iframe.style.border = '0';
+      iframe.style.display = 'block';
+
+      if (unit.kind === 'banner') {
+        iframe.width = String(unit.width);
+        iframe.height = String(unit.height);
+        iframe.style.maxWidth = '100%';
+        const atOptions = { key: unit.key, format: 'iframe', height: unit.height, width: unit.width, params: {} };
+        iframe.srcdoc = `<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;padding:0;overflow:hidden}</style></head><body>
+<script>atOptions=${JSON.stringify(atOptions)};</script>
+<script src="https://www.highperformanceformat.com/${unit.key}/invoke.js"></script>
+</body></html>`;
+      } else {
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.srcdoc = `<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;padding:0}</style></head><body>
+<div id="${unit.containerId}"></div>
+<script async data-cfasync="false" src="${unit.scriptSrc}"></script>
+</body></html>`;
+      }
+
+      el.appendChild(iframe);
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting && !loaded.current) {
-            loaded.current = true;
-            try {
-              // @ts-ignore - adsbygoogle is injected by the AdSense script in layout.tsx
-              (window.adsbygoogle = window.adsbygoogle || []).push({});
-            } catch (e) {
-              // AdSense not yet available (e.g. local dev) - fail silently, never break UX.
-            }
+          if (entry.isIntersecting) {
+            render();
             observer.disconnect();
           }
         }
@@ -43,20 +78,7 @@ export default function AdSlot({ format, adUnitId, className }: Props) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [format]);
 
-  const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-
-  return (
-    <div className={`ad-slot ${className ?? ''}`} data-format={format} ref={ref}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block', width: '100%', height: '100%' }}
-        data-ad-client={client}
-        data-ad-slot={adUnitId}
-        data-ad-format={format === 'in-feed' || format === 'multiplex' ? 'fluid' : 'auto'}
-        data-full-width-responsive="true"
-      />
-    </div>
-  );
+  return <div className={`ad-slot ${className ?? ''}`} data-format={format} data-ad-id={adUnitId} ref={ref} />;
 }

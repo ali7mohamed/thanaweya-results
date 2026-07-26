@@ -96,6 +96,7 @@ nav.main-nav a:hover { color: var(--gold); }
 .ad-slot[data-format="multiplex"] { min-height: 280px; }
 .ad-slot[data-format="in-feed"] { min-height: 120px; }
 .ad-slot[data-format="responsive"] { min-height: 100px; width: 100%; }
+.ad-slot[data-format="anchor"] { min-height: 50px; max-width: 320px; }
 
 footer.site-footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 28px 0; text-align: center; color: var(--muted); font-size: 13px; }
 footer.site-footer a { margin: 0 10px; color: var(--ink-soft); text-decoration: none; font-weight: 600; }

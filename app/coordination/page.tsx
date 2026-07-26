@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
@@ -73,7 +73,7 @@ export default async function CoordinationPage({
         </p>
       </article>
 
-      <AdSlot format="responsive" adUnitId="coordination_mid" />
+      <AdStack baseId="coordination_mid" count={3} />
 
       <div className="card" style={{ marginTop: 24 }}>
         <h2 style={{ marginTop: 0 }}>جدول التنسيق المتوقع</h2>
@@ -166,7 +166,7 @@ export default async function CoordinationPage({
           </div>
         )}
       </div>
-      <AdSlot format="multiplex" adUnitId="coordination_bottom" />
+      <AdStack baseId="coordination_bottom" count={3} formats={['multiplex', 'in-feed', 'rectangle']} />
     </div>
   );
 }

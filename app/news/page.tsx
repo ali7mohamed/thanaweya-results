@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { LatestNewsWidget, PopularNewsWidget } from '@/components/NewsWidgets';
 import TrustedNewsFeed from '@/components/TrustedNewsFeed';
@@ -101,11 +102,12 @@ export default async function NewsPage({
               </div>
             </Link>
             {i === 2 && <AdSlot format="in-feed" adUnitId="news_list_infeed_1" />}
+            {i === 8 && <AdSlot format="in-feed" adUnitId="news_list_infeed_2" />}
           </div>
         ))}
       </div>
 
-      <AdSlot format="in-feed" adUnitId="news_list_bottom" />
+      <AdStack baseId="news_list_bottom" count={3} formats={['in-feed', 'rectangle', 'multiplex']} />
 
       <TrustedNewsFeed items={trustedNews} />
       <LatestNewsWidget items={latest} />

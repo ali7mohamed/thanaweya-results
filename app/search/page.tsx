@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import SearchForm from '@/components/SearchForm';
-import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 
 export const metadata: Metadata = {
   title: 'الاستعلام عن نتيجة الثانوية العامة برقم الجلوس أو الاسم',
@@ -12,7 +12,7 @@ export default function SearchPage() {
   return (
     <div style={{ paddingTop: 10 }}>
       <SearchForm />
-      <AdSlot format="responsive" adUnitId="search_mid" />
+      <AdStack baseId="search_mid" count={3} />
     </div>
   );
 }

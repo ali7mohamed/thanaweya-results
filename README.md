@@ -1,8 +1,7 @@
 # نتيجة الثانوية العامة 2026
 
 موقع استعلام عن نتيجة الثانوية العامة، مبني على Next.js 14 (App Router) + PostgreSQL،
-ومصمم بالكامل حول هدف واحد: أعلى عائد ممكن من Google AdSense مع الحفاظ على تجربة مستخدم
-سريعة ومتوافقة مع سياسات Google.
+ومصمم بالكامل حول هدف واحد: أعلى عائد ممكن من إعلانات Adsterra مع الحفاظ على تجربة مستخدم سريعة.
 
 ## البنية
 
@@ -18,7 +17,7 @@ scripts/        سكريبت الاستيراد السنوي من ملف Excel
 
 ```bash
 npm install
-cp .env.example .env   # عدّل DATABASE_URL و NEXT_PUBLIC_ADSENSE_CLIENT_ID
+cp .env.example .env   # عدّل DATABASE_URL
 npm run db:generate
 npm run db:push
 npx tsx prisma/seed.ts                 # بيانات المحافظات + أماكن الإعلانات
@@ -30,10 +29,10 @@ npm run dev
 
 1. اربط المستودع بمشروع جديد على Vercel.
 2. أضف Environment Variables: `DATABASE_URL` (Neon / Vercel Postgres / Supabase تعمل جميعها)،
-   `NEXT_PUBLIC_ADSENSE_CLIENT_ID`، `NEXT_PUBLIC_SITE_URL`.
+   `NEXT_PUBLIC_SITE_URL`.
 3. بعد أول Deploy، شغّل `npm run db:push` و`prisma/seed.ts` وملف `manual_trgm_index.sql`
    مرة واحدة على قاعدة البيانات الفعلية (من جهازك أو من Vercel CLI).
-4. سجّل النطاق في Google AdSense وانتظر الموافقة، ثم حدّث `ad_unit_id` في جدول `ad_slots`.
+4. أكواد إعلانات Adsterra موجودة جاهزة في `lib/adsterra.ts` — مفيش خطوة إضافية مطلوبة.
 
 ## سير العمل السنوي (استيراد النتيجة)
 

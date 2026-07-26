@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import AdSlot from '@/components/AdSlot';
+import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ShareButtons from '@/components/ShareButtons';
 import { RelatedNews, LatestNewsWidget, PopularNewsWidget } from '@/components/NewsWidgets';
@@ -108,12 +109,29 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
           />
         )}
 
-        <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{item.body}</div>
+        {(() => {
+          const paragraphs = item.body.split(/\n\s*\n/);
+          const firstParagraph = paragraphs[0] ?? item.body;
+          const rest = paragraphs.slice(1).join('\n\n');
+          return (
+            <>
+              <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{firstParagraph}</div>
+              {rest && (
+                <>
+                  <div style={{ margin: '16px 0' }}>
+                    <AdStack baseId="news_article_mid" count={2} formats={['in-feed', 'rectangle']} />
+                  </div>
+                  <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{rest}</div>
+                </>
+              )}
+            </>
+          );
+        })()}
 
         <ShareButtons url={articleUrl} title={item.title} />
       </article>
 
-      <AdSlot format="rectangle" adUnitId="news_article_bottom" />
+      <AdStack baseId="news_article_bottom" count={3} />
 
       <RelatedNews items={related} />
       <LatestNewsWidget items={latest} />
