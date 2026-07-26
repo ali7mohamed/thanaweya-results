@@ -1,0 +1,112 @@
+// Phase 3 architecture: single-season, read-optimized, revenue-first design.
+// See README.md for rationale on every design decision.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Governorate {
+  id           Int             @id @default(autoincrement())
+  nameAr       String          @map("name_ar")
+  slug         String          @unique
+  results      Result[]
+  coordination Coordination[]
+
+  @@map("governorates")
+}
+
+model Result {
+  seatNumber     BigInt   @id @map("seat_number")
+  nameAr         String   @map("name_ar")
+  nameNormalized String   @map("name_normalized")
+  // The official ministry export has no governorate column at all - it's
+  // optional here rather than required. If you import per-governorate files
+  // separately, pass --governorate=<slug> to scripts/import.ts to fill it in.
+  governorateId  Int?     @map("governorate_id")
+  governorate    Governorate? @relation(fields: [governorateId], references: [id])
+  schoolName     String?  @map("school_name")
+  section        String   // human label, e.g. "علمي علوم" - derived from sectionCode
+  sectionCode    Int?     @map("section_code") // raw ministry code (0/2/4/5...), kept for traceability
+  totalDegree    Decimal? @map("total_degree") @db.Decimal(6, 2)
+  percentage     Decimal? @db.Decimal(5, 2)
+  resultStatus   String   @map("result_status")
+  subjectScores  Json?    @map("subject_scores")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([governorateId, section])
+  @@index([resultStatus])
+  @@index([nameNormalized]) // upgraded to GIN+trgm via manual migration, see prisma/migrations/manual_trgm_index.sql
+  @@map("results")
+}
+
+model Coordination {
+  id            Int          @id @default(autoincrement())
+  collegeName   String       @map("college_name")
+  section       String
+  minPercentage Decimal      @map("min_percentage") @db.Decimal(5, 2)
+  governorateId Int?         @map("governorate_id")
+  governorate   Governorate? @relation(fields: [governorateId], references: [id])
+  year          Int
+
+  @@index([section, minPercentage])
+  @@map("coordination")
+}
+
+model News {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  excerpt     String?  // short summary used in cards, meta description, RSS
+  body        String
+  image       String?  // OpenGraph / card image URL
+  category    String   @default("عام") // e.g. "النتيجة", "التنسيق", "التظلمات", "عام"
+  viewCount   Int      @default(0) @map("view_count") // powers the Popular News widget
+  publishedAt DateTime @map("published_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isPublished Boolean  @default(true) @map("is_published")
+
+  @@index([publishedAt(sort: Desc)])
+  @@index([category])
+  @@map("news")
+}
+
+// Cache of headlines pulled from trusted Egyptian news outlets (see lib/news-aggregator.ts).
+// Never editorial content: title/summary/source/url are extracted verbatim-referenced,
+// never generated. If a refresh fails, the page simply keeps showing the last cached rows.
+model AggregatedNews {
+  id          Int      @id @default(autoincrement())
+  title       String
+  summary     String
+  sourceName  String   @map("source_name")
+  sourceUrl   String   @unique @map("source_url")
+  publishedAt DateTime? @map("published_at")
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+
+  @@index([publishedAt(sort: Desc)])
+  @@map("aggregated_news")
+}
+
+model Faq {
+  id        Int    @id @default(autoincrement())
+  question  String
+  answer    String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  @@map("faq")
+}
+
+model AdSlot {
+  id           Int     @id @default(autoincrement())
+  placementKey String  @unique @map("placement_key")
+  adFormat     String  @map("ad_format")
+  adUnitId     String  @map("ad_unit_id")
+  isActive     Boolean @default(true) @map("is_active")
+  pageType     String  @map("page_type")
+
+  @@map("ad_slots")
+}
