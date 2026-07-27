@@ -5,10 +5,72 @@ import { prisma } from '@/lib/db';
 // is reachable by anyone who knows the URL (it's only hidden from search
 // engines via robots.txt, not actually access-controlled), so every write
 // here must be gated on this secret or anyone could publish fake news.
-export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret');
+//
+// NOTE: credentials are hardcoded here (no Vercel env vars needed).
+// If this repo is ever made public, change these immediately.
+const ADMIN_USERNAME = 'ali7mohamed76';
+const ADMIN_PASSWORD = 'ali7mohamed@#';
 
-  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+function isAuthorized(req: NextRequest): boolean {
+  const username = req.headers.get('x-admin-username');
+  const password = req.headers.get('x-admin-password');
+  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+}
+
+// Lists all news items (published and unpublished) for the admin panel,
+// newest first, so the page can render a delete/manage list.
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  const items = await prisma.news.findMany({
+    orderBy: { publishedAt: 'desc' },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      category: true,
+      isPublished: true,
+      publishedAt: true,
+    },
+  });
+
+  return NextResponse.json({ items });
+}
+
+// Deletes a single news item by slug: /api/admin/news?slug=some-slug
+export async function DELETE(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const slug = searchParams.get('slug');
+
+  if (!slug) {
+    return NextResponse.json({ error: 'رابط الخبر (slug) مطلوب.' }, { status: 400 });
+  }
+
+  try {
+    await prisma.news.delete({ where: { slug } });
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    if (err?.code === 'P2025') {
+      return NextResponse.json({ error: 'الخبر غير موجود أصلاً.' }, { status: 404 });
+    }
+    console.error('==========================');
+    console.error(err);
+    console.error('==========================');
+    return NextResponse.json(
+      { error: err?.message ?? 'حدث خطأ غير متوقع أثناء الحذف.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

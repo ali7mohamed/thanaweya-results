@@ -21,17 +21,21 @@ export default function AdminNewsPage() {
     image: '',
     isPublished: true,
   });
+  const [adminUsername, setAdminUsername] = useState('');
   const [adminSecret, setAdminSecret] = useState('');
   const [items, setItems] = useState<any[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
-  const loadItems = async (secretToUse: string) => {
-    if (!secretToUse) return;
+  const loadItems = async (usernameToUse: string, secretToUse: string) => {
+    if (!usernameToUse || !secretToUse) return;
     setItemsLoading(true);
     try {
       const res = await fetch('/api/admin/news', {
-        headers: { 'x-admin-secret': secretToUse },
+        headers: {
+          'x-admin-username': usernameToUse,
+          'x-admin-password': secretToUse,
+        },
       });
       const data = await res.json();
       if (res.ok) setItems(data.items || []);
@@ -46,7 +50,10 @@ export default function AdminNewsPage() {
     try {
       const res = await fetch(`/api/admin/news?slug=${encodeURIComponent(slug)}`, {
         method: 'DELETE',
-        headers: { 'x-admin-secret': adminSecret },
+        headers: {
+          'x-admin-username': adminUsername,
+          'x-admin-password': adminSecret,
+        },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -88,7 +95,8 @@ export default function AdminNewsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          'x-admin-username': adminUsername,
+          'x-admin-password': adminSecret,
         },
         body: JSON.stringify(formData),
       });
@@ -103,7 +111,7 @@ export default function AdminNewsPage() {
       }
 
       setMessage({ type: 'success', text: 'تم حفظ ونشر الخبر بنجاح! 🚀' });
-      loadItems(adminSecret);
+      loadItems(adminUsername, adminSecret);
       // إعادة ضبط النموذج
       setFormData({
         title: '',
@@ -148,16 +156,31 @@ export default function AdminNewsPage() {
       )}
 
       <form onSubmit={handleSubmit} className="card" style={{ display: 'grid', gap: 16 }}>
-        <div>
-          <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>كلمة سر الأدمن *</label>
-          <input
-            type="password"
-            required
-            value={adminSecret}
-            onChange={(e) => setAdminSecret(e.target.value)}
-            placeholder="أدخل كلمة السر"
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>اسم المستخدم *</label>
+            <input
+              type="text"
+              required
+              autoComplete="username"
+              value={adminUsername}
+              onChange={(e) => setAdminUsername(e.target.value)}
+              placeholder="أدخل اسم المستخدم"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', direction: 'ltr', textAlign: 'right' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>كلمة سر الأدمن *</label>
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={adminSecret}
+              onChange={(e) => setAdminSecret(e.target.value)}
+              placeholder="أدخل كلمة السر"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+            />
+          </div>
         </div>
 
         <div>
@@ -280,14 +303,14 @@ export default function AdminNewsPage() {
           <h2 style={{ margin: 0, fontSize: '1.2rem' }}>الأخبار الحالية</h2>
           <button
             type="button"
-            onClick={() => loadItems(adminSecret)}
-            disabled={!adminSecret || itemsLoading}
+            onClick={() => loadItems(adminUsername, adminSecret)}
+            disabled={!adminUsername || !adminSecret || itemsLoading}
             style={{
               padding: '8px 14px',
               borderRadius: 8,
               border: '1px solid #cbd5e1',
               background: '#fff',
-              cursor: adminSecret ? 'pointer' : 'not-allowed',
+              cursor: adminUsername && adminSecret ? 'pointer' : 'not-allowed',
               fontWeight: 600,
               fontSize: '0.85rem',
             }}
