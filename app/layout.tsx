@@ -112,11 +112,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* Google AdSense site-ownership verification / Auto ads script */}
         <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930529333819978"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930529333819978"
+     crossorigin="anonymous"></script>
       </head>
       <body className={tajawal.className}>
         <div className="container">
