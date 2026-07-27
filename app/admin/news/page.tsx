@@ -22,6 +22,42 @@ export default function AdminNewsPage() {
     isPublished: true,
   });
   const [adminSecret, setAdminSecret] = useState('');
+  const [items, setItems] = useState<any[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+
+  const loadItems = async (secretToUse: string) => {
+    if (!secretToUse) return;
+    setItemsLoading(true);
+    try {
+      const res = await fetch('/api/admin/news', {
+        headers: { 'x-admin-secret': secretToUse },
+      });
+      const data = await res.json();
+      if (res.ok) setItems(data.items || []);
+    } finally {
+      setItemsLoading(false);
+    }
+  };
+
+  const handleDelete = async (slug: string) => {
+    if (!confirm('متأكد إنك عايز تحذف الخبر ده؟ الإجراء ده مش قابل للتراجع.')) return;
+    setDeletingSlug(slug);
+    try {
+      const res = await fetch(`/api/admin/news?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': adminSecret },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'تعذر حذف الخبر.');
+        return;
+      }
+      setItems((prev) => prev.filter((i) => i.slug !== slug));
+    } finally {
+      setDeletingSlug(null);
+    }
+  };
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -67,6 +103,7 @@ export default function AdminNewsPage() {
       }
 
       setMessage({ type: 'success', text: 'تم حفظ ونشر الخبر بنجاح! 🚀' });
+      loadItems(adminSecret);
       // إعادة ضبط النموذج
       setFormData({
         title: '',
@@ -237,6 +274,78 @@ export default function AdminNewsPage() {
           {loading ? 'جاري حفظ الخبر...' : 'حفظ ونشر الخبر'}
         </button>
       </form>
+
+      <div className="card" style={{ marginTop: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>الأخبار الحالية</h2>
+          <button
+            type="button"
+            onClick={() => loadItems(adminSecret)}
+            disabled={!adminSecret || itemsLoading}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              background: '#fff',
+              cursor: adminSecret ? 'pointer' : 'not-allowed',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+            }}
+          >
+            {itemsLoading ? 'جاري التحميل...' : 'عرض / تحديث القائمة'}
+          </button>
+        </div>
+
+        {items.length === 0 && !itemsLoading && (
+          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+            اكتب كلمة السر واضغط "عرض / تحديث القائمة" لإظهار الأخبار الموجودة.
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.map((item) => (
+            <div
+              key={item.slug}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 14px',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                gap: 12,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {item.title}
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                  {item.category} · {item.isPublished ? 'منشور' : 'مسودة'} · {new Date(item.publishedAt).toLocaleDateString('ar-EG')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(item.slug)}
+                disabled={deletingSlug === item.slug}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid #fecaca',
+                  background: '#fef2f2',
+                  color: '#b91c1c',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  flexShrink: 0,
+                }}
+              >
+                {deletingSlug === item.slug ? 'جاري الحذف...' : 'حذف'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
