@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { getAdSlots, findAdUnitId } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -46,11 +47,14 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
     .update({ where: { slug: item.slug }, data: { viewCount: { increment: 1 } } })
     .catch(() => {});
 
-  const related = await prisma.news.findMany({
-    where: { isPublished: true, category: item.category, slug: { not: item.slug } },
-    orderBy: { publishedAt: 'desc' },
-    take: 4,
-  });
+  const [related, adSlots] = await Promise.all([
+    prisma.news.findMany({
+      where: { isPublished: true, category: item.category, slug: { not: item.slug } },
+      orderBy: { publishedAt: 'desc' },
+      take: 4,
+    }),
+    getAdSlots('news_article'),
+  ]);
 
   const [latest, popular] = await Promise.all([
     prisma.news.findMany({ where: { isPublished: true, slug: { not: item.slug } }, orderBy: { publishedAt: 'desc' }, take: 5 }),
@@ -88,7 +92,7 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
         ]}
       />
 
-      <AdSlot format="leaderboard" adUnitId="news_article_top" />
+      <AdSlot format="leaderboard" adUnitId={findAdUnitId(adSlots, 'news_article_top')} />
 
       <article className="card">
         <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--gold)' }}>{item.category}</span>
@@ -119,7 +123,7 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
               {rest && (
                 <>
                   <div style={{ margin: '16px 0' }}>
-                    <AdStack baseId="news_article_mid" count={2} formats={['in-feed', 'rectangle']} />
+                    <AdStack baseId="news_article_mid" count={2} formats={['in-feed', 'rectangle']} adSlots={adSlots} />
                   </div>
                   <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{rest}</div>
                 </>
@@ -131,7 +135,7 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
         <ShareButtons url={articleUrl} title={item.title} />
       </article>
 
-      <AdStack baseId="news_article_bottom" count={3} />
+      <AdStack baseId="news_article_bottom" count={3} adSlots={adSlots} />
 
       <RelatedNews items={related} />
       <LatestNewsWidget items={latest} />

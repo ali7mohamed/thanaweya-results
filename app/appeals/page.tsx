@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import AdStack from '@/components/AdStack';
+import { getAdSlots } from '@/lib/ads';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ const jsonLd = {
   ],
 };
 
-export default function AppealsPage() {
+export default async function AppealsPage() {
+  const adSlots = await getAdSlots('appeals');
+
   return (
     <div style={{ paddingTop: 10 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -108,7 +111,7 @@ export default function AppealsPage() {
         </ul>
       </article>
 
-      <AdStack baseId="appeals_mid" count={3} />
+      <AdStack baseId="appeals_mid" count={3} adSlots={adSlots} />
     </div>
   );
 }

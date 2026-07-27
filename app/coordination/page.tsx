@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
+import { getAdSlots } from '@/lib/ads';
 import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
@@ -23,6 +24,7 @@ export default async function CoordinationPage({
   const sort = searchParams.sort === 'asc' ? 'asc' : 'desc';
 
   const governorates = await prisma.governorate.findMany({ orderBy: { nameAr: 'asc' } });
+  const adSlots = await getAdSlots('coordination');
 
   const colleges = await prisma.coordination.findMany({
     where: {
@@ -73,7 +75,7 @@ export default async function CoordinationPage({
         </p>
       </article>
 
-      <AdStack baseId="coordination_mid" count={3} />
+      <AdStack baseId="coordination_mid" count={3} adSlots={adSlots} />
 
       <div className="card" style={{ marginTop: 24 }}>
         <h2 style={{ marginTop: 0 }}>جدول التنسيق المتوقع</h2>
@@ -166,7 +168,7 @@ export default async function CoordinationPage({
           </div>
         )}
       </div>
-      <AdStack baseId="coordination_bottom" count={3} formats={['multiplex', 'in-feed', 'rectangle']} />
+      <AdStack baseId="coordination_bottom" count={3} formats={['multiplex', 'in-feed', 'rectangle']} adSlots={adSlots} />
     </div>
   );
 }

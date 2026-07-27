@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { POPUNDER_SRC, SOCIAL_BAR_SRC } from '@/lib/adsterra';
 import './globals.css';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
@@ -51,9 +50,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }),
           }}
         />
-        {/* Adsterra site-wide units: fire once per page view, not tied to a content slot. */}
-        <Script src={POPUNDER_SRC} strategy="afterInteractive" />
-        <Script src={SOCIAL_BAR_SRC} strategy="afterInteractive" />
+        {/* Google AdSense site-ownership verification / Auto ads script. */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930529333819978"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body>
         <div className="container">

@@ -4,8 +4,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ResultCard from '@/components/ResultCard';
-import AdSlot from '@/components/AdSlot';
-import AdStack from '@/components/AdStack';
 
 function ResultContent() {
   const params = useSearchParams();
@@ -90,12 +88,7 @@ function ResultContent() {
   // pages-per-session without clickbait, per the AdSense-first architecture.
   return (
     <div style={{ paddingTop: 20 }}>
-      <AdSlot format="leaderboard" adUnitId="result_top" />
       <ResultCard result={result} />
-      <AdSlot format="in-feed" adUnitId="result_infeed_1" />
-
-      {/* Exam-season ad wall #1, between the result and the "next step" card. */}
-      <AdStack baseId="result_wall_1" count={9} />
 
       <div className="card" style={{ marginTop: 24 }}>
         <h3 style={{ marginTop: 0 }}>الخطوة التالية</h3>
@@ -120,10 +113,6 @@ function ResultContent() {
           </Link>
         </div>
       </div>
-
-      <AdSlot format="rectangle" adUnitId="result_bottom" />
-      {/* Exam-season ad wall #2, at the bottom of the page. */}
-      <AdStack baseId="result_wall_2" count={10} />
     </div>
   );
 }

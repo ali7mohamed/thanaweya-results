@@ -2,17 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SearchForm from '@/components/SearchForm';
 import AdStack from '@/components/AdStack';
+import { getAdSlots } from '@/lib/ads';
 
 export const metadata: Metadata = {
   title: 'نتيجة الثانوية العامة 2026 - استعلم عن نتيجتك الآن',
   alternates: { canonical: '/' },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const adSlots = await getAdSlots('home');
+
   return (
     <div style={{ paddingTop: 10 }}>
       <SearchForm />
-      <AdStack baseId="home_mid" count={3} />
+      <AdStack baseId="home_mid" count={3} adSlots={adSlots} />
 
       <div className="card" style={{ marginTop: 24 }}>
         <h2 style={{ marginTop: 0 }}>روابط سريعة</h2>

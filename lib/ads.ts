@@ -23,3 +23,16 @@ export async function getAdSlots(pageType: string): Promise<AdSlotConfig[]> {
     pageType: s.pageType,
   }));
 }
+
+/**
+ * Looks up the real Google AdSense ad-unit ID for a placement key.
+ * Returns null (never the literal placement key, never "REPLACE_ME") if the
+ * slot doesn't exist yet or hasn't been configured with a real ID — AdSlot
+ * treats null as "don't render," so an unconfigured placement never sends an
+ * invalid data-ad-slot value to Google.
+ */
+export function findAdUnitId(slots: AdSlotConfig[], placementKey: string): string | null {
+  const slot = slots.find((s) => s.placementKey === placementKey);
+  if (!slot || !slot.adUnitId || slot.adUnitId === 'REPLACE_ME') return null;
+  return slot.adUnitId;
+}

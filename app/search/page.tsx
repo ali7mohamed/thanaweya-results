@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import SearchForm from '@/components/SearchForm';
 import AdStack from '@/components/AdStack';
+import { getAdSlots } from '@/lib/ads';
 
 export const metadata: Metadata = {
   title: 'الاستعلام عن نتيجة الثانوية العامة برقم الجلوس أو الاسم',
@@ -8,12 +9,13 @@ export const metadata: Metadata = {
   alternates: { canonical: '/search' },
 };
 
-export default function SearchPage() {
+export default async function SearchPage() {
+  const adSlots = await getAdSlots('search');
+
   return (
     <div style={{ paddingTop: 10 }}>
       <SearchForm />
-      {/* Exam-season ad wall: 20 Adsterra units, lazy-loaded as the visitor scrolls. */}
-      <AdStack baseId="search_mid" count={20} />
+      <AdStack baseId="search_mid" count={3} adSlots={adSlots} />
     </div>
   );
 }

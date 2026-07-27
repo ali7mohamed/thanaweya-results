@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
+import { getAdSlots, findAdUnitId } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import AdStack from '@/components/AdStack';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -29,7 +30,7 @@ export default async function NewsPage({
 }) {
   const category = searchParams.category && searchParams.category !== 'الكل' ? searchParams.category : undefined;
 
-  const [items, latest, popular, trustedNews] = await Promise.all([
+  const [items, latest, popular, trustedNews, adSlots] = await Promise.all([
     prisma.news.findMany({
       where: { isPublished: true, ...(category ? { category } : {}) },
       orderBy: { publishedAt: 'desc' },
@@ -38,6 +39,7 @@ export default async function NewsPage({
     prisma.news.findMany({ where: { isPublished: true }, orderBy: { publishedAt: 'desc' }, take: 5 }),
     prisma.news.findMany({ where: { isPublished: true }, orderBy: { viewCount: 'desc' }, take: 5 }),
     getCachedTrustedNews(6),
+    getAdSlots('news'),
   ]);
 
   return (
@@ -101,13 +103,13 @@ export default async function NewsPage({
                 </div>
               </div>
             </Link>
-            {i === 2 && <AdSlot format="in-feed" adUnitId="news_list_infeed_1" />}
-            {i === 8 && <AdSlot format="in-feed" adUnitId="news_list_infeed_2" />}
+            {i === 2 && <AdSlot format="in-feed" adUnitId={findAdUnitId(adSlots, 'news_list_infeed_1')} />}
+            {i === 8 && <AdSlot format="in-feed" adUnitId={findAdUnitId(adSlots, 'news_list_infeed_2')} />}
           </div>
         ))}
       </div>
 
-      <AdStack baseId="news_list_bottom" count={3} formats={['in-feed', 'rectangle', 'multiplex']} />
+      <AdStack baseId="news_list_bottom" count={3} formats={['in-feed', 'rectangle', 'multiplex']} adSlots={adSlots} />
 
       <TrustedNewsFeed items={trustedNews} />
       <LatestNewsWidget items={latest} />
