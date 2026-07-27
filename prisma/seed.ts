@@ -4,8 +4,15 @@
  * Run with: npx tsx prisma/seed.ts
  */
 import { PrismaClient } from '@prisma/client';
+import { COORDINATION_2025_RAW } from './coordination-2025-data';
 
 const prisma = new PrismaClient();
+
+const SECTION_LABELS: Record<'science' | 'math' | 'literary', string> = {
+  science: 'علمي علوم',
+  math: 'علمي رياضة',
+  literary: 'أدبي',
+};
 
 const GOVERNORATES = [
   { nameAr: 'القاهرة', slug: 'cairo' },
@@ -27,6 +34,9 @@ const GOVERNORATES = [
   { nameAr: 'بورسعيد', slug: 'port-said' },
   { nameAr: 'الإسماعيلية', slug: 'ismailia' },
   { nameAr: 'السويس', slug: 'suez' },
+  { nameAr: 'دمياط', slug: 'damietta' },
+  { nameAr: 'بني سويف', slug: 'beni-suef' },
+  { nameAr: 'الفيوم', slug: 'fayoum' },
 ];
 
 const AD_SLOTS = [
@@ -154,6 +164,23 @@ async function main() {
   for (const g of GOVERNORATES) {
     await prisma.governorate.upsert({ where: { slug: g.slug }, update: {}, create: g });
   }
+
+  // Coordination reference data (last year's real, published figures) — replace
+  // the whole 2025 batch every run so re-seeding never creates duplicate rows.
+  const governorates = await prisma.governorate.findMany();
+  const govIdBySlug = new Map(governorates.map((g: { slug: string; id: number }) => [g.slug, g.id]));
+
+  await prisma.coordination.deleteMany({ where: { year: 2025 } });
+  await prisma.coordination.createMany({
+    data: COORDINATION_2025_RAW.map(([minPercentage, university, college, section, govSlug]) => ({
+      collegeName: `${college} - ${university}`,
+      section: SECTION_LABELS[section],
+      minPercentage,
+      governorateId: govSlug ? govIdBySlug.get(govSlug) ?? null : null,
+      year: 2025,
+    })),
+  });
+
   for (const slot of AD_SLOTS) {
     await prisma.adSlot.upsert({
       where: { placementKey: slot.placementKey },
@@ -175,7 +202,7 @@ async function main() {
       create: { ...article, isPublished: true },
     });
   }
-  console.log('Seed complete: governorates, ad slot placeholders, FAQ, and starter news articles created.');
+  console.log('Seed complete: governorates, 2025 coordination reference data, ad slot placeholders, FAQ, and starter news articles created.');
   console.log('Edit ad_unit_id values in the ad_slots table once real AdSense units are approved.');
   console.log('Add real, dated news as they happen - the 3 seeded articles are evergreen explainers, not breaking news.');
 }
