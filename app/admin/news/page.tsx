@@ -21,6 +21,7 @@ export default function AdminNewsPage() {
     image: '',
     isPublished: true,
   });
+  const [adminSecret, setAdminSecret] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -49,12 +50,20 @@ export default function AdminNewsPage() {
     try {
       const res = await fetch('/api/admin/news', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
         body: JSON.stringify(formData),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error('حدث خطأ أثناء حفظ الخبر');
+        if (res.status === 401) {
+          throw new Error('كلمة السر غير صحيحة.');
+        }
+        throw new Error(data.error || 'حدث خطأ أثناء حفظ الخبر');
       }
 
       setMessage({ type: 'success', text: 'تم حفظ ونشر الخبر بنجاح! 🚀' });
@@ -102,6 +111,18 @@ export default function AdminNewsPage() {
       )}
 
       <form onSubmit={handleSubmit} className="card" style={{ display: 'grid', gap: 16 }}>
+        <div>
+          <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>كلمة سر الأدمن *</label>
+          <input
+            type="password"
+            required
+            value={adminSecret}
+            onChange={(e) => setAdminSecret(e.target.value)}
+            placeholder="أدخل كلمة السر"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+          />
+        </div>
+
         <div>
           <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>عنوان الخبر الحصري *</label>
           <input
