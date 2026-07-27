@@ -21,22 +21,22 @@ model Governorate {
 }
 
 model Result {
-  seatNumber     BigInt   @id @map("seat_number")
-  nameAr         String   @map("name_ar")
-  nameNormalized String   @map("name_normalized")
+  seatNumber     BigInt       @id @map("seat_number")
+  nameAr         String       @map("name_ar")
+  nameNormalized String       @map("name_normalized")
   // The official ministry export has no governorate column at all - it's
   // optional here rather than required. If you import per-governorate files
   // separately, pass --governorate=<slug> to scripts/import.ts to fill it in.
-  governorateId  Int?     @map("governorate_id")
+  governorateId  Int?         @map("governorate_id")
   governorate    Governorate? @relation(fields: [governorateId], references: [id])
-  schoolName     String?  @map("school_name")
-  section        String   // human label, e.g. "علمي علوم" - derived from sectionCode
-  sectionCode    Int?     @map("section_code") // raw ministry code (0/2/4/5...), kept for traceability
-  totalDegree    Decimal? @map("total_degree") @db.Decimal(6, 2)
-  percentage     Decimal? @db.Decimal(5, 2)
-  resultStatus   String   @map("result_status")
-  subjectScores  Json?    @map("subject_scores")
-  createdAt      DateTime @default(now()) @map("created_at")
+  schoolName     String?      @map("school_name")
+  section        String       // human label, e.g. "علمي علوم" - derived from sectionCode
+  sectionCode    Int?         @map("section_code") // raw ministry code (0/2/4/5...), kept for traceability
+  totalDegree    Decimal?     @map("total_degree") @db.Decimal(6, 2)
+  percentage     Decimal?     @db.Decimal(5, 2)
+  resultStatus   String       @map("result_status")
+  subjectScores  Json?        @map("subject_scores")
+  createdAt      DateTime     @default(now()) @map("created_at")
 
   @@index([governorateId, section])
   @@index([resultStatus])
@@ -79,13 +79,13 @@ model News {
 // Never editorial content: title/summary/source/url are extracted verbatim-referenced,
 // never generated. If a refresh fails, the page simply keeps showing the last cached rows.
 model AggregatedNews {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
   summary     String
-  sourceName  String   @map("source_name")
-  sourceUrl   String   @unique @map("source_url")
+  sourceName  String    @map("source_name")
+  sourceUrl   String    @unique @map("source_url")
   publishedAt DateTime? @map("published_at")
-  fetchedAt   DateTime @default(now()) @map("fetched_at")
+  fetchedAt   DateTime  @default(now()) @map("fetched_at")
 
   @@index([publishedAt(sort: Desc)])
   @@map("aggregated_news")
@@ -109,4 +109,27 @@ model AdSlot {
   pageType     String  @map("page_type")
 
   @@map("ad_slots")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  link      String?
+  type      String   @default("info") // "info", "warning", "success", "alert"
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("admin_users")
 }

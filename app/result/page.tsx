@@ -33,7 +33,7 @@ function ResultContent() {
           setSuggestions(data.suggestions);
           setState('suggestions');
         } else {
-          setError(data.error || 'حدث خطأ.');
+          setError(data.error || 'لم يتم العثور على نتيجة متطابقة مع البيانات الموضحة.');
           setState('error');
         }
       })
@@ -44,41 +44,70 @@ function ResultContent() {
   }, [seat, name, router]);
 
   if (state === 'loading') {
-    return <p style={{ textAlign: 'center', padding: '60px 0' }}>جارِ البحث عن النتيجة...</p>;
+    return (
+      <div 
+        style={{ textAlign: 'center', padding: '60px 0' }} 
+        role="status" 
+        aria-live="polite"
+      >
+        <p style={{ fontSize: '1.1rem', color: 'var(--muted, #64748b)' }}>جاري البحث عن النتيجة في قاعدة البيانات...</p>
+      </div>
+    );
   }
 
   if (state === 'error') {
     return (
-      <div className="card" style={{ textAlign: 'center' }}>
-        <p className="error-msg" style={{ margin: '0 0 16px' }}>{error}</p>
-        <Link href="/search" className="btn ghost" style={{ display: 'inline-block' }}>
-          العودة للبحث
-        </Link>
+      <div className="card" style={{ textAlign: 'center', marginTop: 20 }} role="alert">
+        <p className="error-msg" style={{ margin: '0 0 16px', fontSize: '1rem' }}>{error}</p>
+        
+        <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>
+          تأكد من كتابة رقم الجلوس الصحيح باللغة العربية أو الإنجليزية. إذا لم تكن النتائج قد أُعلنت رسمياً بعد، يرجى متابعة الأخبار لحين اعتماد الكشوف.
+        </p>
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/search" className="btn" style={{ margin: 0 }}>
+            إعادة البحث
+          </Link>
+          <Link href="/news" className="btn ghost" style={{ margin: 0 }}>
+            متابعة أخبار النتيجة
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (state === 'suggestions') {
     return (
-      <div className="card">
-        <p style={{ marginBottom: 16 }}>يوجد أكثر من نتيجة بهذا الاسم، اختر رقم الجلوس الصحيح:</p>
-        {suggestions.map((s) => (
-          <Link
-            key={s.seatNumber}
-            href={`/result?seat=${s.seatNumber}`}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--paper-2)',
-              textDecoration: 'none',
-              color: 'var(--ink)',
-            }}
-          >
-            <span>{s.name}</span>
-            <span style={{ color: 'var(--muted)', direction: 'ltr' }}>{s.seatNumber}</span>
-          </Link>
-        ))}
+      <div className="card" style={{ marginTop: 20 }}>
+        <p style={{ marginBottom: 16, fontWeight: 600 }}>
+          يوجد أكثر من نتيجة بهذا الاسم، اختر اسم الطالب ورقم الجلوس الصحيح:
+        </p>
+        <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {suggestions.map((s) => (
+            <Link
+              key={s.seatNumber}
+              href={`/result?seat=${s.seatNumber}`}
+              role="listitem"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                border: '1px solid var(--paper-2, #e2e8f0)',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: 'var(--ink, #0f172a)',
+                backgroundColor: '#ffffff',
+                transition: 'background-color 0.2s',
+              }}
+            >
+              <span style={{ fontWeight: 500 }}>{s.name}</span>
+              <span style={{ color: 'var(--muted, #64748b)', direction: 'ltr', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                {s.seatNumber}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     );
   }
@@ -88,22 +117,55 @@ function ResultContent() {
   // pages-per-session without clickbait, per the AdSense-first architecture.
   return (
     <div style={{ paddingTop: 20 }}>
+      {/* Result Card Component */}
       <ResultCard result={result} />
 
+      {/* Utility Actions (Print / Save Result) */}
+      <div style={{ marginTop: 16, textAlign: 'center' }}>
+        <button 
+          onClick={() => window.print()} 
+          className="btn ghost"
+          style={{ cursor: 'pointer', fontSize: '0.9rem' }}
+        >
+          🖨️ طباعة أو حفظ بطاقة النتيجة (PDF)
+        </button>
+      </div>
+
+      {/* E-E-A-T Official Transcript Disclaimer */}
+      <div 
+        className="card" 
+        style={{ 
+          marginTop: 16, 
+          backgroundColor: '#f8fafc', 
+          border: '1px solid #e2e8f0', 
+          fontSize: '0.825rem',
+          color: '#475569',
+          lineHeight: '1.6'
+        }}
+      >
+        <strong>تنويه هام:</strong> هذه النتيجة مستخرجة إلكترونياً من القوائم المعلنة. وتعتبر واستمارة النجاح الورقية المسلمة من المدرسة المقيد بها الطالب هي الوثيقة الرسمية المعتمدة لاستكمال إجراءات التنسيق الجامعي.
+      </div>
+
+      {/* Next Steps Guidance */}
       <div className="card" style={{ marginTop: 24 }}>
-        <h3 style={{ marginTop: 0 }}>الخطوة التالية</h3>
-        <p style={{ color: 'var(--ink-soft)', lineHeight: 1.9 }}>
-          بناءً على نسبتك ({result.percentage ?? '—'}%)، يمكنك الآن معرفة الكليات المتاحة لك في التنسيق،
-          أو متابعة آخر التحديثات حول نتيجة هذا العام.
+        <h3 style={{ marginTop: 0, fontSize: '1.15rem' }}>الخطوات التالية المتاحة للطالب</h3>
+        <p style={{ color: 'var(--ink-soft, #334155)', lineHeight: 1.8, fontSize: '0.925rem' }}>
+          بناءً على نسبتك ({result.percentage ?? '—'}%)، يمكنك الآن معرفة الكليات والمؤهلات المتاحة لك في التنسيق الجامعي المتوقع، أو الاطلاع على مواعيد التظلمات ورسوم المواد.
         </p>
+
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Link href={`/coordination?section=${result.section}&percentage=${result.percentage ?? ''}`} className="btn" style={{ margin: 0, flex: '1 1 200px' }}>
+          <Link 
+            href={`/coordination?section=${encodeURIComponent(result.section || '')}&percentage=${result.percentage ?? ''}`} 
+            className="btn" 
+            style={{ margin: 0, flex: '1 1 200px' }}
+          >
             التنسيق المتوقع للكليات
           </Link>
           <Link href="/news" className="btn ghost" style={{ margin: 0, flex: '1 1 200px' }}>
             آخر أخبار النتيجة
           </Link>
         </div>
+
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
           <Link href="/appeals" className="btn ghost" style={{ margin: 0, flex: '1 1 200px' }}>
             التقدم بتظلم على النتيجة

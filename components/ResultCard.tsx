@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 type Governorate = { nameAr: string };
-type ResultData = {
+
+export type ResultData = {
   seatNumber: string;
   nameAr: string;
   section: string;
@@ -29,9 +30,7 @@ const SUBJECT_LABEL_OVERRIDES: Record<string, string> = {
 };
 
 // Core subjects that make up the total, in ministry column order, with their
-// official max mark (see scripts/import.ts SUBJECT_COLUMNS). A subject
-// missing from subjectScores means it wasn't scheduled for this student's
-// section (stored value was -4 / NOT_APPLICABLE at import time).
+// official max mark (see scripts/import.ts SUBJECT_COLUMNS).
 const CORE_SUBJECTS: { key: string; max: number }[] = [
   { key: 'اللغة العربية', max: 80 },
   { key: 'اللغة الأجنبية الأولى', max: 60 },
@@ -51,8 +50,7 @@ const PASS_FAIL_SUBJECTS: { key: string; max: number }[] = [
   { key: 'اللغة الأجنبية الثانية', max: 40 },
 ];
 
-// Sections that use the standard 320-mark total (see SECTION_MAX_TOTAL in
-// scripts/import.ts). Others ("نوعيات أخرى") have no published denominator.
+// Sections that use the standard 320-mark total denominator.
 const SECTION_MAX_TOTAL: Record<string, number> = {
   'أدبي': 320,
   'علمي علوم': 320,
@@ -63,10 +61,10 @@ export default function ResultCard({ result }: { result: ResultData }) {
   const statusLabel = STATUS_LABELS[result.resultStatus] ?? result.resultStatus;
   const statusColor =
     result.resultStatus === 'FAIL'
-      ? 'var(--maroon)'
+      ? 'var(--maroon, #991b1b)'
       : result.resultStatus === 'PASS'
-      ? 'var(--emerald-2)'
-      : 'var(--gold)';
+      ? 'var(--emerald-2, #059669)'
+      : 'var(--gold, #d97706)';
 
   const percentageNum = result.percentage ? parseFloat(result.percentage) : null;
   const maxTotal = SECTION_MAX_TOTAL[result.section] ?? null;
@@ -88,20 +86,26 @@ export default function ResultCard({ result }: { result: ResultData }) {
   const passFailRows = PASS_FAIL_SUBJECTS.filter(({ key }) => scores[key] !== undefined);
 
   return (
-    <div className="card result-card" role="region" aria-label="نتيجة الطالب">
+    <div className="card result-card" role="region" aria-label={`نتيجة الطالب ${result.nameAr}`}>
       <div className="rc-header">
         <h2 className="rc-name">{result.nameAr}</h2>
         <div className="rc-badges">
           <span className="rc-badge">رقم الجلوس: {result.seatNumber}</span>
           <span className="rc-badge">الشعبة: {result.section}</span>
-          <span className="rc-badge" style={{ color: statusColor, borderColor: statusColor }}>
+          {result.governorate?.nameAr && (
+            <span className="rc-badge">المحافظة: {result.governorate.nameAr}</span>
+          )}
+          {result.schoolName && (
+            <span className="rc-badge">المدرسة: {result.schoolName}</span>
+          )}
+          <span className="rc-badge" style={{ color: statusColor, borderColor: statusColor, fontWeight: 700 }}>
             الحالة: {statusLabel}
           </span>
         </div>
       </div>
 
       <div className="rc-summary">
-        <div className="rc-ring-wrap">
+        <div className="rc-ring-wrap" aria-hidden="true">
           <svg viewBox="0 0 160 160" className="rc-ring">
             <circle cx="80" cy="80" r={radius} className="rc-ring-track" />
             <circle
@@ -130,10 +134,10 @@ export default function ResultCard({ result }: { result: ResultData }) {
           <table className="rc-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'right' }}>المادة</th>
-                <th>الدرجة</th>
-                <th>من</th>
-                <th style={{ width: '35%' }}>النسبة</th>
+                <th scope="col" style={{ textAlign: 'right' }}>المادة</th>
+                <th scope="col">الدرجة</th>
+                <th scope="col">من</th>
+                <th scope="col" style={{ width: '35%' }}>النسبة</th>
               </tr>
             </thead>
             <tbody>
@@ -148,7 +152,7 @@ export default function ResultCard({ result }: { result: ResultData }) {
                     <td>{scheduled ? max : '—'}</td>
                     <td>
                       {scheduled && (
-                        <div className="rc-bar-track">
+                        <div className="rc-bar-track" aria-hidden="true">
                           <div className="rc-bar-fill" style={{ width: animate ? `${pct}%` : '0%' }} />
                         </div>
                       )}
@@ -167,10 +171,10 @@ export default function ResultCard({ result }: { result: ResultData }) {
           <table className="rc-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'right' }}>المادة</th>
-                <th>الدرجة</th>
-                <th>من</th>
-                <th>الحالة</th>
+                <th scope="col" style={{ textAlign: 'right' }}>المادة</th>
+                <th scope="col">الدرجة</th>
+                <th scope="col">من</th>
+                <th scope="col">الحالة</th>
               </tr>
             </thead>
             <tbody>
@@ -195,9 +199,11 @@ export default function ResultCard({ result }: { result: ResultData }) {
         </div>
       )}
 
-      <Link href="/search" className="btn rc-search-btn">
-        بحث عن نتيجة أخرى
-      </Link>
+      <div className="rc-no-print" style={{ textAlign: 'center', marginTop: 16 }}>
+        <Link href="/search" className="btn rc-search-btn">
+          بحث عن نتيجة أخرى
+        </Link>
+      </div>
 
       <style jsx>{`
         .result-card {
@@ -209,11 +215,11 @@ export default function ResultCard({ result }: { result: ResultData }) {
           animation: rcFadeSlide 0.5s ease both;
         }
         .rc-name {
-          font-family: 'Amiri', serif;
+          font-family: var(--font-amiri), 'Amiri', serif;
           font-weight: 700;
           font-size: clamp(26px, 5vw, 40px);
           margin: 0 0 14px;
-          color: var(--ink);
+          color: var(--ink, #0f172a);
         }
         .rc-badges {
           display: flex;
@@ -225,9 +231,9 @@ export default function ResultCard({ result }: { result: ResultData }) {
           display: inline-block;
           padding: 7px 16px;
           border-radius: 999px;
-          border: 1.5px solid var(--line);
-          background: var(--paper-2);
-          color: var(--ink-soft);
+          border: 1.5px solid var(--line, #cbd5e1);
+          background: var(--paper-2, #f8fafc);
+          color: var(--ink-soft, #334155);
           font-size: 13.5px;
           font-weight: 700;
         }
@@ -238,7 +244,7 @@ export default function ResultCard({ result }: { result: ResultData }) {
           gap: clamp(24px, 6vw, 64px);
           flex-wrap: wrap;
           padding: 20px 0 30px;
-          border-bottom: 1px solid var(--line);
+          border-bottom: 1px solid var(--line, #cbd5e1);
           margin-bottom: 26px;
           animation: rcFadeSlide 0.6s ease 0.1s both;
         }
@@ -254,12 +260,12 @@ export default function ResultCard({ result }: { result: ResultData }) {
         }
         .rc-ring-track {
           fill: none;
-          stroke: var(--paper-2);
+          stroke: var(--paper-2, #e2e8f0);
           stroke-width: 14;
         }
         .rc-ring-progress {
           fill: none;
-          stroke: var(--gold);
+          stroke: var(--gold, #d97706);
           stroke-width: 14;
           stroke-linecap: round;
           transition: stroke-dashoffset 1.1s cubic-bezier(0.22, 0.9, 0.3, 1);
@@ -272,7 +278,7 @@ export default function ResultCard({ result }: { result: ResultData }) {
           justify-content: center;
           font-size: 24px;
           font-weight: 700;
-          color: var(--ink);
+          color: var(--ink, #0f172a);
         }
         .rc-total {
           text-align: center;
@@ -280,18 +286,18 @@ export default function ResultCard({ result }: { result: ResultData }) {
         .rc-total-value {
           font-size: clamp(36px, 6vw, 54px);
           font-weight: 700;
-          color: var(--emerald);
+          color: var(--emerald, #047857);
           line-height: 1;
         }
         .rc-total-max {
           font-size: 20px;
-          color: var(--muted);
+          color: var(--muted, #64748b);
           font-weight: 700;
         }
         .rc-total-label {
           margin-top: 8px;
           font-size: 13.5px;
-          color: var(--muted);
+          color: var(--muted, #64748b);
           font-weight: 700;
         }
         .rc-section {
@@ -300,7 +306,7 @@ export default function ResultCard({ result }: { result: ResultData }) {
         }
         .rc-section-title {
           font-size: 16px;
-          color: var(--emerald-2);
+          color: var(--emerald-2, #059669);
           margin: 0 0 14px;
           font-weight: 700;
         }
@@ -311,33 +317,33 @@ export default function ResultCard({ result }: { result: ResultData }) {
         .rc-table th {
           text-align: center;
           font-size: 12.5px;
-          color: var(--muted);
+          color: var(--muted, #64748b);
           font-weight: 700;
           padding: 8px 6px;
-          border-bottom: 2px solid var(--line);
+          border-bottom: 2px solid var(--line, #cbd5e1);
         }
         .rc-table td {
           text-align: center;
           padding: 12px 6px;
-          border-bottom: 1px solid var(--paper-2);
+          border-bottom: 1px solid var(--paper-2, #f1f5f9);
           font-weight: 600;
-          color: var(--ink);
+          color: var(--ink, #0f172a);
         }
         .rc-na {
-          color: var(--muted);
+          color: var(--muted, #64748b);
           font-weight: 600;
           font-size: 13px;
         }
         .rc-bar-track {
           height: 8px;
           border-radius: 999px;
-          background: var(--paper-2);
+          background: var(--paper-2, #e2e8f0);
           overflow: hidden;
         }
         .rc-bar-fill {
           height: 100%;
           border-radius: 999px;
-          background: linear-gradient(90deg, var(--gold), var(--gold-light));
+          background: linear-gradient(90deg, #f59e0b, #fbbf24);
           transition: width 1s cubic-bezier(0.22, 0.9, 0.3, 1);
         }
         .rc-pill {
@@ -348,17 +354,12 @@ export default function ResultCard({ result }: { result: ResultData }) {
           font-weight: 700;
         }
         .rc-pill-pass {
-          background: var(--emerald-glow);
-          color: var(--emerald);
+          background: #d1fae5;
+          color: #047857;
         }
         .rc-pill-fail {
-          background: rgba(124, 32, 32, 0.12);
-          color: var(--maroon);
-        }
-        .rc-search-btn {
-          margin-top: 10px;
-          text-align: center;
-          text-decoration: none;
+          background: #fee2e2;
+          color: #b91c1c;
         }
 
         @keyframes rcFadeSlide {
@@ -384,6 +385,16 @@ export default function ResultCard({ result }: { result: ResultData }) {
           .rc-table td {
             font-size: 13px;
             padding: 8px 4px;
+          }
+        }
+
+        @media print {
+          .rc-no-print {
+            display: none !important;
+          }
+          .result-card {
+            box-shadow: none !important;
+            border: none !important;
           }
         }
       `}</style>

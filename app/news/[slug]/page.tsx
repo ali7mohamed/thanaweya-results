@@ -67,16 +67,23 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: item.title,
-    description: item.excerpt || undefined,
-    image: item.image ? [item.image] : undefined,
+    description: item.excerpt || item.title,
+    image: item.image ? [item.image] : [`${SITE_URL}/og-default.jpg`],
     datePublished: item.publishedAt.toISOString(),
     dateModified: item.updatedAt.toISOString(),
     articleSection: item.category,
+    inLanguage: 'ar-EG',
     mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl },
+    author: {
+      '@type': 'Organization',
+      name: 'فريق التحرير - بوابة نتائج الثانوية العامة',
+      url: SITE_URL,
+    },
     publisher: {
       '@type': 'Organization',
       name: 'نتيجة الثانوية العامة 2026',
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png` },
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.ico` },
     },
   };
 
@@ -95,14 +102,32 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
       <AdSlot format="leaderboard" adUnitId={findAdUnitId(adSlots, 'news_article_top')} />
 
       <article className="card">
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--gold)' }}>{item.category}</span>
-        <h1 style={{ margin: '4px 0 8px', fontFamily: 'Amiri, serif' }}>{item.title}</h1>
-        <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-          {new Date(item.publishedAt).toLocaleDateString('ar-EG')}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--gold, #d97706)' }}>
+            {item.category}
+          </span>
+          <span style={{ fontSize: 11, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4 }}>
+            تغطية تحريرية خاصة
+          </span>
+        </div>
+
+        <h1 style={{ margin: '4px 0 8px', fontFamily: 'var(--font-amiri), Amiri, serif', fontSize: 'clamp(1.5rem, 4vw, 2.1rem)' }}>
+          {item.title}
+        </h1>
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--muted, #64748b)', margin: '8px 0 16px', borderBottom: '1px solid var(--paper-2, #f1f5f9)', paddingBottom: 8 }}>
+          <span>بقلم: فريق التحرير</span>
+          <span>•</span>
+          <time dateTime={item.publishedAt.toISOString()}>
+            📅 {new Date(item.publishedAt).toLocaleDateString('ar-EG')}
+          </time>
           {item.updatedAt.getTime() !== item.publishedAt.getTime() && (
-            <> — آخر تحديث: {new Date(item.updatedAt).toLocaleDateString('ar-EG')}</>
+            <>
+              <span>•</span>
+              <span>آخر تحديث: {new Date(item.updatedAt).toLocaleDateString('ar-EG')}</span>
+            </>
           )}
-        </p>
+        </div>
 
         {item.image && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -119,20 +144,42 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
           const rest = paragraphs.slice(1).join('\n\n');
           return (
             <>
-              <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{firstParagraph}</div>
+              <div style={{ lineHeight: 1.9, color: 'var(--ink-soft, #334155)', whiteSpace: 'pre-line', fontSize: '1.025rem' }}>
+                {firstParagraph}
+              </div>
               {rest && (
                 <>
-                  <div style={{ margin: '16px 0' }}>
+                  <div style={{ margin: '20px 0' }}>
                     <AdStack baseId="news_article_mid" count={2} formats={['in-feed', 'rectangle']} adSlots={adSlots} />
                   </div>
-                  <div style={{ lineHeight: 1.9, color: 'var(--ink-soft)', whiteSpace: 'pre-line' }}>{rest}</div>
+                  <div style={{ lineHeight: 1.9, color: 'var(--ink-soft, #334155)', whiteSpace: 'pre-line', fontSize: '1.025rem' }}>
+                    {rest}
+                  </div>
                 </>
               )}
             </>
           );
         })()}
 
-        <ShareButtons url={articleUrl} title={item.title} />
+        {/* E-E-A-T Editorial Disclaimer Box */}
+        <div 
+          style={{ 
+            marginTop: 24, 
+            padding: '12px 16px', 
+            backgroundColor: '#f8fafc', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: 8, 
+            fontSize: '0.825rem', 
+            color: '#475569',
+            lineHeight: 1.6
+          }}
+        >
+          <strong>تنويه التحرير والمصادر:</strong> تتم مراجعة وتعديل المواد الإخبارية والتنسيقية المنشورة على هذا الموقع بواسطة فريق التحرير بناءً على البيانات والتصريحات الصادرة عن وزارة التربية والتعليم والتعليم الفني والجهات الرسمية المختصة.
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <ShareButtons url={articleUrl} title={item.title} />
+        </div>
       </article>
 
       <AdStack baseId="news_article_bottom" count={3} adSlots={adSlots} />

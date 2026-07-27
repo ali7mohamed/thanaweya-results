@@ -3,29 +3,72 @@ import { prisma } from '@/lib/db';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
 
-// Chunked sitemap: static pages here, news articles paginated separately
-// so the file never grows unbounded as news accumulates through the season.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
-    '/', '/search', '/coordination', '/appeals', '/faq', '/news', '/about', '/contact', '/privacy', '/terms',
-  ].map((path) => ({
-    url: `${SITE_URL}${path}`,
-    changeFrequency: path === '/news' ? 'hourly' : 'daily',
-    priority: path === '/' || path === '/search' ? 1 : 0.6,
-  }));
-
-  const news = await prisma.news.findMany({
+  // 1. جلب كافة الأخبار المنشورة ديناميكياً
+  const newsItems = await prisma.news.findMany({
     where: { isPublished: true },
-    select: { slug: true, publishedAt: true },
-    take: 1000,
+    select: { slug: true, updatedAt: true },
+    orderBy: { updatedAt: 'desc' },
   });
 
-  const newsPages: MetadataRoute.Sitemap = news.map((n) => ({
-    url: `${SITE_URL}/news/${n.slug}`,
-    lastModified: n.publishedAt,
+  const newsUrls: MetadataRoute.Sitemap = newsItems.map((item) => ({
+    url: `${SITE_URL}/news/${item.slug}`,
+    lastModified: item.updatedAt,
     changeFrequency: 'weekly',
     priority: 0.7,
   }));
 
-  return [...staticPages, ...newsPages];
+  // 2. الصفحات الثابتة والخدمية
+  const staticPages: MetadataRoute.Sitemap = [
+    {
+      url: `${SITE_URL}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1.0,
+    },
+    {
+      url: `${SITE_URL}/search`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/coordination`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/news`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/disclaimer`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
+  ];
+
+  return [...staticPages, ...newsUrls];
 }
