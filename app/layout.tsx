@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { Tajawal, Amiri } from 'next/font/google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -110,10 +109,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify(jsonLd),
           }}
         />
-        {/* Google AdSense site-ownership verification / Auto ads script */}
-        <Script
-          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930529333819978"
-     crossorigin="anonymous"></script>
+        {/*
+          Google AdSense site-ownership verification + ad-serving script.
+          Kept as a plain <script> (not next/script) so it's present verbatim
+          in the server-rendered HTML, exactly as Google's snippet requires,
+          for the AdSense review crawler to find it on first fetch.
+        */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930529333819978"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={tajawal.className}>
         <div className="container">
