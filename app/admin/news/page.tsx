@@ -164,16 +164,25 @@ export default function AdminNewsPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontWeight 700, marginBottom: 6 }}>محتوى الخبر التفصيلي *</label>
-          <textarea
-            rows={10}
-            required
-            value={formData.body}
-            onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-            placeholder="اكتب تفاصيل المقال هنا... استخدم الأسطر المزدوجة للفصل بين الفقرات."
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', lineHeight: 1.8 }}
-          />
-        </div>
+  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>
+    محتوى الخبر التفصيلي *
+  </label>
+
+  <textarea
+    rows={10}
+    required
+    value={formData.body}
+    onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+    placeholder="اكتب تفاصيل المقال هنا... استخدم الأسطر المزدوجة للفصل بين الفقرات."
+    style={{
+      width: '100%',
+      padding: '10px 12px',
+      borderRadius: 8,
+      border: '1px solid #cbd5e1',
+      lineHeight: 1.8,
+    }}
+  />
+</div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input

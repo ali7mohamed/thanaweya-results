@@ -217,7 +217,7 @@ export default async function CoordinationPage({
         </form>
 
         {percentage && (
-          <p style={{ color: 'var(--ink-soft)', fontWeight: 600, mb: 16 }}>
+          <p style={{ color: 'var(--ink-soft)', fontWeight: 600, marginBottom: 16 }}>
             الكليات المتاحة لنسبة {percentage}% وأقل في الحدود الدنيا:
           </p>
         )}
