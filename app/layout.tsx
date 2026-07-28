@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Tajawal, Amiri } from 'next/font/google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+// @ts-ignore: Allow importing global CSS without type declarations in this file
 import './globals.css';
 
 const tajawal = Tajawal({

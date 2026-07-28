@@ -20,31 +20,83 @@ export const metadata: Metadata = {
 
 const SECTIONS = ['علمي علوم', 'علمي رياضة', 'أدبي'];
 
+// Builds a compact list of page numbers with '…' gaps, e.g. [1, '…', 4, 5, 6, '…', 29]
+function buildPageList(current: number, total: number): (number | '…')[] {
+  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+
+  const result: (number | '…')[] = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (prev && p - prev > 1) result.push('…');
+    result.push(p);
+    prev = p;
+  }
+  return result;
+}
+
+const PAGE_SIZE = 25;
+
 export default async function CoordinationPage({
   searchParams,
 }: {
-  searchParams: { section?: string; percentage?: string; governorate?: string; q?: string; sort?: string };
+  searchParams: {
+    section?: string;
+    percentage?: string;
+    governorate?: string;
+    university?: string;
+    college?: string;
+    sort?: string;
+    page?: string;
+  };
 }) {
   const section = searchParams.section;
   const percentage = searchParams.percentage ? Number(searchParams.percentage) : undefined;
   const governorateSlug = searchParams.governorate;
-  const q = searchParams.q?.trim();
+  const university = searchParams.university?.trim();
+  const college = searchParams.college?.trim();
   const sort = searchParams.sort === 'asc' ? 'asc' : 'desc';
+  const page = Math.max(1, Number(searchParams.page) || 1);
 
   const governorates = await prisma.governorate.findMany({ orderBy: { nameAr: 'asc' } });
   const adSlots = await getAdSlots('coordination');
 
+  const latestYearRow = await prisma.coordination.findFirst({ orderBy: { year: 'desc' } });
+  const latestYear = latestYearRow?.year ?? new Date().getFullYear();
+
+  const where = {
+    year: latestYear,
+    ...(section ? { section } : {}),
+    ...(percentage ? { minPercentage: { lte: percentage } } : {}),
+    ...(governorateSlug ? { governorate: { slug: governorateSlug } } : {}),
+    ...(university ? { universityName: { contains: university, mode: 'insensitive' as const } } : {}),
+    ...(college ? { collegeName: { contains: college, mode: 'insensitive' as const } } : {}),
+  };
+
+  const totalCount = await prisma.coordination.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+
   const colleges = await prisma.coordination.findMany({
-    where: {
-      ...(section ? { section } : {}),
-      ...(percentage ? { minPercentage: { lte: percentage } } : {}),
-      ...(governorateSlug ? { governorate: { slug: governorateSlug } } : {}),
-      ...(q ? { collegeName: { contains: q, mode: 'insensitive' } } : {}),
-    },
+    where,
     orderBy: { minPercentage: sort },
-    take: 100,
+    skip: (currentPage - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: { governorate: true },
   });
+
+  // Builds a query string that keeps all active filters but swaps the page number.
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (university) params.set('university', university);
+    if (college) params.set('college', college);
+    if (section) params.set('section', section);
+    if (governorateSlug) params.set('governorate', governorateSlug);
+    if (percentage) params.set('percentage', String(percentage));
+    if (sort !== 'desc') params.set('sort', sort);
+    params.set('page', String(p));
+    return `/coordination?${params.toString()}`;
+  };
 
   // Schema structured data for FAQ and Coordination ItemList
   const faqSchema = {
@@ -147,80 +199,85 @@ export default async function CoordinationPage({
       <AdStack baseId="coordination_mid" count={3} adSlots={adSlots} />
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2 style={{ marginTop: 0 }}>جدول التنسيق المتوقع</h2>
+        <h2 style={{ marginTop: 0 }}>تنسيق {latestYear}</h2>
+        <p style={{ color: 'var(--muted, #64748b)', fontSize: 13.5, marginTop: -8, marginBottom: 18 }}>
+          سجلات {latestYear} فقط، مرتبة حسب نسبة التنسيق (الأعلى أولاً).
+        </p>
 
         <form
           method="get"
           aria-label="تصفية البحث في جدول التنسيق"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: 10,
-            marginBottom: 20,
-          }}
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}
         >
           <input
             type="text"
-            name="q"
-            defaultValue={q ?? ''}
-            placeholder="ابحث باسم الكلية..."
-            aria-label="البحث باسم الكلية"
-            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
+            name="university"
+            defaultValue={university ?? ''}
+            placeholder="الجامعة"
+            aria-label="ابحث باسم الجامعة"
+            style={{ flex: '1 1 180px', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
           />
-          <select 
-            name="section" 
-            defaultValue={section ?? ''} 
-            aria-label="اختر الشعبة"
-            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
-          >
-            <option value="">كل الشعب</option>
-            {SECTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <select 
-            name="governorate" 
-            defaultValue={governorateSlug ?? ''} 
-            aria-label="اختر المحافظة"
-            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
-          >
-            <option value="">كل المحافظات</option>
-            {governorates.map((g) => (
-              <option key={g.slug} value={g.slug}>{g.nameAr}</option>
-            ))}
-          </select>
           <input
-            type="number"
-            name="percentage"
-            defaultValue={percentage ?? ''}
-            placeholder="نسبتك %"
-            min={0}
-            max={100}
-            aria-label="أدخل النسبه المئوية"
-            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
+            type="text"
+            name="college"
+            defaultValue={college ?? ''}
+            placeholder="الكلية"
+            aria-label="ابحث باسم الكلية"
+            style={{ flex: '1 1 180px', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
           />
-          <select 
-            name="sort" 
-            defaultValue={sort} 
-            aria-label="ترتيب النتائج"
-            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
-          >
-            <option value="desc">الأعلى تنسيقاً أولاً</option>
-            <option value="asc">الأقل تنسيقاً أولاً</option>
-          </select>
           <button
             type="submit"
-            style={{ padding: '10px 12px', borderRadius: 8, border: 'none', background: 'var(--emerald-2, #059669)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: 'var(--emerald-2, #059669)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
           >
             بحث
           </button>
         </form>
 
-        {percentage && (
-          <p style={{ color: 'var(--ink-soft)', fontWeight: 600, marginBottom: 16 }}>
-            الكليات المتاحة لنسبة {percentage}% وأقل في الحدود الدنيا:
-          </p>
-        )}
+        <details style={{ marginBottom: 20 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: 'var(--emerald-2)' }}>
+            فلاتر إضافية (الشعبة، المحافظة، نسبتك، الترتيب)
+          </summary>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            <input type="hidden" name="university" value={university ?? ''} />
+            <input type="hidden" name="college" value={college ?? ''} />
+            <select name="section" defaultValue={section ?? ''} aria-label="اختر الشعبة" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}>
+              <option value="">كل الشعب</option>
+              {SECTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select name="governorate" defaultValue={governorateSlug ?? ''} aria-label="اختر المحافظة" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}>
+              <option value="">كل المحافظات</option>
+              {governorates.map((g) => (
+                <option key={g.slug} value={g.slug}>{g.nameAr}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              name="percentage"
+              defaultValue={percentage ?? ''}
+              placeholder="نسبتك %"
+              min={0}
+              max={100}
+              aria-label="أدخل النسبه المئوية"
+              style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}
+            />
+            <select name="sort" defaultValue={sort} aria-label="ترتيب النتائج" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', background: '#fff' }}>
+              <option value="desc">الأعلى تنسيقاً أولاً</option>
+              <option value="asc">الأقل تنسيقاً أولاً</option>
+            </select>
+            <button type="submit" style={{ padding: '10px 12px', borderRadius: 8, border: 'none', background: 'var(--emerald-2, #059669)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+              تطبيق
+            </button>
+          </div>
+        </details>
 
         {colleges.length === 0 ? (
           <div style={{ padding: '24px 16px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
@@ -232,34 +289,81 @@ export default async function CoordinationPage({
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {colleges.map((c) => (
-              <div
-                key={c.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  border: '1px solid var(--paper-2, #f1f5f9)',
-                  background: '#fff',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--ink, #0f172a)' }}>{c.collegeName}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--muted, #64748b)', marginTop: 2 }}>
-                    {c.section}
-                    {c.governorate ? ` — ${c.governorate.nameAr}` : ''}
-                  </div>
-                </div>
-                <div style={{ fontWeight: 800, color: 'var(--emerald-2, #059669)', fontSize: 16 }}>
-                  {c.minPercentage.toString()}%
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            <div style={{ overflowX: 'auto', border: '1px solid var(--paper-2, #e2e8f0)', borderRadius: 10 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: 'var(--paper-2, #f1f5f9)', textAlign: 'right' }}>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--emerald-2, #059669)' }}>التنسيق</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--ink, #0f172a)' }}>الجامعة</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--ink, #0f172a)' }}>الكلية</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--ink, #0f172a)' }}>الشعبة</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--ink, #0f172a)' }}>السنة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {colleges.map((c, i) => (
+                    <tr
+                      key={c.id}
+                      style={{
+                        borderTop: '1px solid var(--paper-2, #f1f5f9)',
+                        background: i % 2 === 0 ? '#fff' : 'var(--paper, #fafaf9)',
+                      }}
+                    >
+                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--emerald-2, #059669)', whiteSpace: 'nowrap' }}>
+                        {c.minPercentage.toString()}%
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {c.governorate?.nameAr || '—'}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{c.collegeName}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--ink-soft)' }}>{c.section}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--muted, #64748b)' }}>{c.year}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <nav aria-label="صفحات جدول التنسيق" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 20 }}>
+              {currentPage > 1 && (
+                <Link href={pageHref(currentPage - 1)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', color: 'var(--ink-soft)', textDecoration: 'none', fontSize: 13 }}>
+                  السابق
+                </Link>
+              )}
+              {buildPageList(currentPage, totalPages).map((p, idx) =>
+                p === '…' ? (
+                  <span key={`ellipsis-${idx}`} style={{ padding: '6px 4px', color: 'var(--muted, #64748b)' }}>…</span>
+                ) : (
+                  <Link
+                    key={p}
+                    href={pageHref(p as number)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--line, #cbd5e1)',
+                      textDecoration: 'none',
+                      fontSize: 13,
+                      fontWeight: p === currentPage ? 800 : 500,
+                      color: p === currentPage ? '#fff' : 'var(--ink-soft)',
+                      background: p === currentPage ? 'var(--emerald-2, #059669)' : '#fff',
+                    }}
+                  >
+                    {p}
+                  </Link>
+                )
+              )}
+              {currentPage < totalPages && (
+                <Link href={pageHref(currentPage + 1)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--line, #cbd5e1)', color: 'var(--ink-soft)', textDecoration: 'none', fontSize: 13 }}>
+                  التالي
+                </Link>
+              )}
+            </nav>
+            <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted, #64748b)', marginTop: 10 }}>
+              صفحة {currentPage} من {totalPages} · {totalCount} إجمالي
+            </p>
+          </>
         )}
       </div>
 
