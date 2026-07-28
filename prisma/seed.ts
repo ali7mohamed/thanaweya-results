@@ -160,7 +160,7 @@ const NEWS_ARTICLES = [
   },
 ];
 
-async function main() {
+export async function runSeed() {
   for (const g of GOVERNORATES) {
     await prisma.governorate.upsert({ where: { slug: g.slug }, update: {}, create: g });
   }
@@ -207,4 +207,10 @@ async function main() {
   console.log('Add real, dated news as they happen - the 3 seeded articles are evergreen explainers, not breaking news.');
 }
 
-main().finally(() => prisma.$disconnect());
+// Only auto-runs when executed directly (npx tsx prisma/seed.ts).
+// When imported elsewhere (e.g. the admin seed API route), it just exposes
+// runSeed() without triggering it — the caller decides when to run it.
+const isDirectRun = process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js');
+if (isDirectRun) {
+  runSeed().finally(() => prisma.$disconnect());
+}
