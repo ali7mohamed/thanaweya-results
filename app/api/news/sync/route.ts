@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
 
-  if (process.env.NEWS_SYNC_SECRET && secret !== process.env.NEWS_SYNC_SECRET) {
+  if (!process.env.NEWS_SYNC_SECRET || secret !== process.env.NEWS_SYNC_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
